@@ -1,0 +1,21 @@
+# Netlify 部署配置
+# ---------------------------------------------------------------
+# 本项目为 Vite + Vue3 单页应用（SPA，history 路由模式）。
+
+[build]
+  # Netlify 专用演示构建：加载 .env.demo（VITE_USE_MOCK=true），打包前端假数据
+  # 不影响研发的正式构建命令 npm run build（走 .env.production，接真实后端）
+  command = "npm run build:demo"
+  # 构建产物输出目录（Vite 默认 dist）
+  publish = "dist"
+
+[build.environment]
+  # 锁定 Node 版本，避免 Netlify 默认版本与本地不一致导致构建差异
+  NODE_VERSION = "20"
+
+# SPA history 路由回退：所有未匹配到静态文件的路径都返回 index.html，
+# 交给前端路由处理，避免刷新子路由 / 直接访问深链接出现 404。
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
