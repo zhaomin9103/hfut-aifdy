@@ -299,9 +299,9 @@ export default [
     }
   },
 
-  // 分页查询列表
+  // 分页查询列表（用正则确保仅匹配 /api/psychological-warnings 本身，不吃掉 /:id）
   {
-    url: '/api/psychological-warnings',
+    url: /^\/api\/psychological-warnings$/,
     method: 'get',
     response: ({ query }) => {
       const { page = 1, size = 10, riskLevel, riskTypes, emailStatus, triggerType, studentSearch, startTime, endTime } = query
