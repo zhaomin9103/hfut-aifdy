@@ -59,8 +59,9 @@ export function markWarningHandled(id, data) {
 
 /**
  * 获取统计数据
+ * 业务规则: P3 低危由 AI 端内疏导,后台不留档、不发邮件;此接口仅返回 P0/P1/P2 计数。
  * @param {Object} params - { period?: '7' | '30' | '180' | 'all' } 默认 '30'
- * @returns {Promise<Object>} - { period, p0Count, p1Count, p2Count, p3Count }
+ * @returns {Promise<Object>} - { period, p0Count, p1Count, p2Count }
  */
 export function getWarningStats(params) {
   return request.get('/psychological-warnings/stats', { params })

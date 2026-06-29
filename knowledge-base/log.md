@@ -39,4 +39,12 @@
 - 2026-06-25 | 新增 | knowledge-base/modules/risk-interception.md | 风险拦截模块文档 | Claude
 - 2026-06-25 | 更新 | knowledge-base/modules/inventory.md | 添加风险拦截记录模块 | Claude
 - 2026-06-25 | 更新 | knowledge-base/system/URL路由.md | 添加风险拦截记录和用户管理路由 | Claude
+- 2026-06-29 | 修改 | src/views/PsychologicalWarnings.vue | 移除 P3 等级筛选/卡片/映射,统计网格改 3 列,补充业务说明 | Claude
+- 2026-06-29 | 修改 | mock/warning.js | 删除 3 条 P3 假数据,统计字段移除 p3Count | Claude
+- 2026-06-29 | 修改 | src/api/warning.js | 更新 getWarningStats JSDoc 与业务规则注释 | Claude
+- 2026-06-29 | 更新 | knowledge-base/raw/API接口契约.md | 心理风险预警章节统一为 P0/P1/P2,说明 P3 不入库不发邮件 | Claude
+- 2026-06-29 | 更新 | knowledge-base/modules/views.md | 心理风险预警视图描述同步 P3 退出后台 | Claude
+- 2026-06-29 | 修改 | src/views/PsychologicalWarnings.vue | 兜底过滤历史 P3 数据,文案改写"P0-P2",tooltip 可键盘聚焦,导出文件名改 csv 加 P0-P2 后缀 | Claude
+- 2026-06-29 | 修改 | mock/warning.js | STATS_BY_PERIOD 与列表 P0/P1/P2 实际条数对齐,补充 id 缺号注释 | Claude
+- 2026-06-29 | 更新 | docs/QUICK_REFERENCE.md | 顶部加 2026-06-29 P3 退出后台说明,关键词属性段同步当前实现 | Claude
 

@@ -24,8 +24,15 @@
                 <div class="stat-label">
                   <span class="stat-dot"></span>
                   {{ card.label }}
-                  <el-tooltip placement="top" :content="card.desc" effect="dark">
-                    <el-icon class="stat-info"><InfoFilled /></el-icon>
+                  <el-tooltip placement="top" :content="card.desc" effect="dark" :trigger="['hover', 'focus']">
+                    <el-icon
+                      class="stat-info"
+                      role="img"
+                      tabindex="0"
+                      :aria-label="`${card.label}风险等级说明`"
+                    >
+                      <InfoFilled />
+                    </el-icon>
                   </el-tooltip>
                 </div>
                 <div class="stat-sub">{{ card.sub }}</div>
@@ -88,7 +95,6 @@
           <el-option label="P0-紧急危机" value="P0" />
           <el-option label="P1-高危" value="P1" />
           <el-option label="P2-中危" value="P2" />
-          <el-option label="P3-低危" value="P3" />
         </el-select>
 
         <el-select
@@ -494,6 +500,9 @@ import {
   exportWarnings
 } from '../api/warning'
 
+// 当前后台支持的风险等级（业务约定: P3 低危由 AI 端内疏导,不入库不发邮件）
+const ACTIVE_RISK_LEVELS = ['P0', 'P1', 'P2']
+
 // 状态管理
 const loading = ref(false)
 const tableData = ref([])
@@ -520,24 +529,22 @@ const statsPeriod = ref('30')
 const stats = reactive({
   p0Count: 0,
   p1Count: 0,
-  p2Count: 0,
-  p3Count: 0
+  p2Count: 0
 })
 
 // 风险等级说明（鼠标悬停展示）
+// 业务规则: P3 低危由 AI 端内疏导,后台不留档、不发邮件;此处仅维护 P0/P1/P2 的统计与说明。
 const RISK_LEVEL_INFO = {
   P0: 'P0-紧急危机:明确自杀计划/正在实施自伤/急性精神异常/幻觉妄想失控',
   P1: 'P1-高危风险:自杀意念表达/重度抑郁倾向/严重情绪崩溃/创伤急性反应',
-  P2: 'P2-中危关注:持续情绪低落/明显社交退缩/学业人际严重困扰/睡眠食欲显著异常',
-  P3: 'P3-低危预警:偶发负面情绪/轻度压力反应/一般性困惑/需一般性支持'
+  P2: 'P2-中危关注:持续情绪低落/明显社交退缩/学业人际严重困扰/睡眠食欲显著异常'
 }
 
 // 统计卡片配置
 const statCards = computed(() => [
   { level: 'P0', label: 'P0 紧急危机', sub: '立即介入', value: stats.p0Count, desc: RISK_LEVEL_INFO.P0 },
   { level: 'P1', label: 'P1 高危风险', sub: '尽快处理', value: stats.p1Count, desc: RISK_LEVEL_INFO.P1 },
-  { level: 'P2', label: 'P2 中危关注', sub: '持续关注', value: stats.p2Count, desc: RISK_LEVEL_INFO.P2 },
-  { level: 'P3', label: 'P3 低危预警', sub: '一般支持', value: stats.p3Count, desc: RISK_LEVEL_INFO.P3 }
+  { level: 'P2', label: 'P2 中危关注', sub: '持续关注', value: stats.p2Count, desc: RISK_LEVEL_INFO.P2 }
 ])
 
 // 筛选条件
@@ -580,8 +587,7 @@ async function loadStats() {
     Object.assign(stats, {
       p0Count: res.p0Count,
       p1Count: res.p1Count,
-      p2Count: res.p2Count,
-      p3Count: res.p3Count
+      p2Count: res.p2Count
     })
   } catch (e) {
     // 错误已由拦截器统一提示
@@ -603,7 +609,8 @@ async function loadData() {
       endTime: filters.endTime || undefined
     }
     const res = await getWarnings(params)
-    tableData.value = res.list
+    // 兜底过滤: 如后端历史数据仍含 P3,前端不显示,避免与 UI 承诺不一致
+    tableData.value = (res.list || []).filter(w => ACTIVE_RISK_LEVELS.includes(w.riskLevel))
     pageInfo.total = res.total
   } catch (e) {
     // 错误已由拦截器统一提示
@@ -780,7 +787,8 @@ async function handleExport() {
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `心理风险预警_${new Date().getTime()}.xlsx`
+    // 后端实际返回 CSV(UTF-8 with BOM),文件名加 P0-P2 后缀以体现仅含三级,便于审计区分
+    link.download = `心理风险预警_P0-P2_${new Date().getTime()}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success('导出成功')
@@ -796,18 +804,17 @@ function getRiskLevelText(level) {
   const map = {
     P0: '🚨 P0-紧急危机',
     P1: '🔴 P1-高危',
-    P2: '🟡 P2-中危',
-    P3: '🔵 P3-低危'
+    P2: '🟡 P2-中危'
   }
-  return map[level] || level
+  // 历史/异常等级(含 P3)走兜底,避免裸字符串"P3"出现在 UI 上
+  return map[level] || '未知等级'
 }
 
 function getRiskLevelType(level) {
   const map = {
     P0: 'danger',
     P1: 'danger',
-    P2: 'warning',
-    P3: 'info'
+    P2: 'warning'
   }
   return map[level] || 'info'
 }
@@ -877,7 +884,7 @@ function getContentTypeLabel(type) {
 /* 统计卡片 */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -970,16 +977,9 @@ function getContentTypeLabel(type) {
   background: var(--warn);
 }
 
-.stat-card.p3 {
-  border-left-color: var(--brand);
-}
-.stat-card.p3 .stat-dot {
-  background: var(--brand);
-}
-
 @media (max-width: 1100px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 

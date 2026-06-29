@@ -7,15 +7,18 @@
  */
 
 // ===== 统计数据（按周期预聚合，与列表解耦，更贴近真实后端聚合查询） =====
-// 仅统计 P0~P3 四个等级，默认展示最近 30 天。
+// 业务约定: P3 低危预警由 AI 端内疏导,后台不留档、不发邮件;统计与列表仅维护 P0/P1/P2。
+// 数字与下方 warnings 列表的 P0/P1/P2 实际条数(2/3/4)在 '7'/'30' 上保持一致,
+// 避免演示 demo 时统计与筛选条数明显不对。'180'/'all' 仍按历史聚合给出,模拟真实增量。
 const STATS_BY_PERIOD = {
-  '7': { p0Count: 2, p1Count: 5, p2Count: 11, p3Count: 18 },
-  '30': { p0Count: 6, p1Count: 19, p2Count: 42, p3Count: 73 },
-  '180': { p0Count: 23, p1Count: 88, p2Count: 210, p3Count: 365 },
-  all: { p0Count: 41, p1Count: 156, p2Count: 389, p3Count: 642 }
+  '7': { p0Count: 2, p1Count: 3, p2Count: 4 },
+  '30': { p0Count: 2, p1Count: 3, p2Count: 4 },
+  '180': { p0Count: 23, p1Count: 88, p2Count: 210 },
+  all: { p0Count: 41, p1Count: 156, p2Count: 389 }
 }
 
-// ===== 列表假数据（12 条，分页每页 10 条 → 首页展示 10 条） =====
+// ===== 列表假数据（9 条 P0/P1/P2,分页每页 10 条 → 单页可展示全部） =====
+// 注: id 1004/1010/1011 三个号段为已下线 P3 历史预留,不复用以便演示时直接对应"P3 已退出"的事实。
 let warnings = [
   {
     id: 1001, studentName: '林晓彤', studentNumber: '2021214301', college: '计算机与信息学院',
@@ -63,21 +66,6 @@ let warnings = [
     emailSendDecision: '命中 P2 规则，慢路聚合后发送', dedupResult: '近 24h 内无重复预警，正常发送'
   },
   {
-    id: 1004, studentName: '周思源', studentNumber: '2023056219', college: '电气与自动化工程学院',
-    major: '电气工程及其自动化', className: '电气2305', counselorName: '吴军', counselorEmail: 'wujun@hfut.edu.cn',
-    riskLevel: 'P3', riskTypes: ['情绪类'], triggerType: 'slow', confidence: 62,
-    emailSendStatus: 'sent', createdAt: '2026-06-23 10:15:08', handledAt: null,
-    sessionId: 'sess-1a5f73', turnIndexRange: '2-4',
-    triggerKeywords: ['有点烦'],
-    reasoning: '学生偶发负面情绪，属一般性压力反应，无明显风险升级迹象，判定为 P3 低危预警。',
-    suggestedAction: {
-      immediateResponse: 'AI 已给予情绪疏导与鼓励，暂无需人工介入。',
-      notifyTargets: [],
-      intervention: '持续观察，如情绪反复出现可适当关注。'
-    },
-    emailSendDecision: 'P3 低危，按日报汇总发送', dedupResult: '近 24h 内无重复预警，正常发送'
-  },
-  {
     id: 1005, studentName: '黄梓萱', studentNumber: '2021207466', college: '外国语学院',
     major: '英语', className: '英语2104', counselorName: '郑红', counselorEmail: 'zhenghong@hfut.edu.cn',
     riskLevel: 'P1', riskTypes: ['创伤类', '情绪类'], triggerType: 'fast', confidence: 91,
@@ -108,22 +96,7 @@ let warnings = [
     emailSendDecision: '命中 P2 规则，慢路聚合后发送', dedupResult: '近 24h 内无重复预警，正常发送'
   },
   {
-    id: 1007, studentName: '何雅琪', studentNumber: '2020188210', college: '建筑与艺术学院',
-    major: '建筑学', className: '建筑2001', counselorName: '杨帆', counselorEmail: 'yangfan@hfut.edu.cn',
-    riskLevel: 'P3', riskTypes: ['发展类'], triggerType: 'slow', confidence: 58,
-    emailSendStatus: 'failed', createdAt: '2026-06-19 09:48:19', handledAt: null,
-    sessionId: 'sess-6f9c12', turnIndexRange: '1-3',
-    triggerKeywords: ['迷茫', '不知道方向'],
-    reasoning: '学生处于一般性发展困惑，对未来规划感到迷茫，需要一般性支持，判定为 P3 低危预警。',
-    suggestedAction: {
-      immediateResponse: 'AI 提供生涯规划建议与鼓励。',
-      notifyTargets: [],
-      intervention: '可引导参加生涯规划讲座或职业咨询。'
-    },
-    emailSendDecision: 'P3 低危，按日报汇总发送', dedupResult: '近 24h 内无重复预警，正常发送'
-  },
-  {
-    id: 1008, studentName: '罗浩宇', studentNumber: '2021233574', college: '数学学院',
+    id: 1007, studentName: '罗浩宇', studentNumber: '2021233574', college: '数学学院',
     major: '信息与计算科学', className: '信计2103', counselorName: '王敏', counselorEmail: 'wangmin@hfut.edu.cn',
     riskLevel: 'P0', riskTypes: ['精神类', '自伤自杀类'], triggerType: 'fast', confidence: 94,
     emailSendStatus: 'failed', createdAt: '2026-06-15 02:11:36', handledAt: null,
@@ -138,7 +111,7 @@ let warnings = [
     emailSendDecision: '命中 P0 紧急规则，强制即时发送', dedupResult: '近 24h 内无重复预警，正常发送'
   },
   {
-    id: 1009, studentName: '高欣怡', studentNumber: '2022077198', college: '食品科学与工程学院',
+    id: 1008, studentName: '高欣怡', studentNumber: '2022077198', college: '食品科学与工程学院',
     major: '食品科学与工程', className: '食品2201', counselorName: '李国强', counselorEmail: 'ligq@hfut.edu.cn',
     riskLevel: 'P2', riskTypes: ['家庭类', '情绪类'], triggerType: 'slow', confidence: 68,
     emailSendStatus: 'sent', createdAt: '2026-05-28 17:26:44', handledAt: '2026-05-29 09:00:00',
@@ -153,7 +126,7 @@ let warnings = [
     emailSendDecision: '命中 P2 规则，慢路聚合后发送', dedupResult: '近 24h 内无重复预警，正常发送'
   },
   {
-    id: 1010, studentName: '邓承志', studentNumber: '2020166023', college: '土木与水利工程学院',
+    id: 1009, studentName: '邓承志', studentNumber: '2020166023', college: '土木与水利工程学院',
     major: '土木工程', className: '土木2003', counselorName: '孙丽', counselorEmail: 'sunli@hfut.edu.cn',
     riskLevel: 'P1', riskTypes: ['成瘾类', '情绪类'], triggerType: 'fast', confidence: 85,
     emailSendStatus: 'sent', createdAt: '2026-05-12 23:55:02', handledAt: null,
@@ -166,21 +139,6 @@ let warnings = [
       intervention: '建议接受成瘾相关心理咨询与行为干预。'
     },
     emailSendDecision: '命中 P1 高危规则，即时发送', dedupResult: '近 24h 内无重复预警，正常发送'
-  },
-  {
-    id: 1011, studentName: '苏沐辰', studentNumber: '2023029841', college: '物理学院',
-    major: '应用物理学', className: '应物2302', counselorName: '吴军', counselorEmail: 'wujun@hfut.edu.cn',
-    riskLevel: 'P3', riskTypes: ['情绪类'], triggerType: 'slow', confidence: 55,
-    emailSendStatus: 'sent', createdAt: '2026-04-18 11:09:27', handledAt: '2026-04-18 15:00:00',
-    sessionId: 'sess-7d3b95', turnIndexRange: '2-3',
-    triggerKeywords: ['考试紧张'],
-    reasoning: '学生考前轻度压力反应，情绪在正常波动范围内，判定为 P3 低危预警。',
-    suggestedAction: {
-      immediateResponse: 'AI 提供放松与备考建议。',
-      notifyTargets: [],
-      intervention: '一般性关注即可。'
-    },
-    emailSendDecision: 'P3 低危，按日报汇总发送', dedupResult: '近 24h 内无重复预警，正常发送'
   },
   {
     id: 1012, studentName: '范一鸣', studentNumber: '2021241160', college: '化学与化工学院',

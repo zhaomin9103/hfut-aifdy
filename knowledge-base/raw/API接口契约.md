@@ -243,11 +243,12 @@ PUT /api/feedback-records/{id}/status
 
 ## 六、心理风险预警
 
-> 风险等级共四级，含义如下（前端在统计卡片上以 info 图标悬浮展示）：
+> 后台仅处置 P0 / P1 / P2 三级风险（前端在统计卡片上以 info 图标悬浮展示），含义如下：
 > - **P0-紧急危机**：明确自杀计划 / 正在实施自伤 / 急性精神异常 / 幻觉妄想失控
 > - **P1-高危风险**：自杀意念表达 / 重度抑郁倾向 / 严重情绪崩溃 / 创伤急性反应
 > - **P2-中危关注**：持续情绪低落 / 明显社交退缩 / 学业人际严重困扰 / 睡眠食欲显著异常
-> - **P3-低危预警**：偶发负面情绪 / 轻度压力反应 / 一般性困惑 / 需一般性支持
+>
+> **业务约定**：P3-低危预警（偶发负面情绪 / 轻度压力反应 / 一般性困惑）由 AI 端内直接疏导，后台不予记录、不入库、不触发邮件预警。所有 `/api/psychological-warnings/*` 接口均不返回 P3 数据。
 
 ### 1. 风险等级统计
 
@@ -262,9 +263,9 @@ GET /api/psychological-warnings/stats
 
 **响应 data 结构：**
 ```json
-{ "period": "30", "p0Count": 6, "p1Count": 19, "p2Count": 42, "p3Count": 73 }
+{ "period": "30", "p0Count": 6, "p1Count": 19, "p2Count": 42 }
 ```
-> 仅统计 P0~P3 四个等级的数量，按传入的 period 聚合返回。
+> 仅统计 P0 / P1 / P2 三个等级的数量，按传入的 period 聚合返回；P3 不入统计。
 
 ### 2. 分页查询预警列表
 
@@ -277,7 +278,7 @@ GET /api/psychological-warnings
 |------|------|------|------|
 | page | number | 是 | 页码 |
 | size | number | 是 | 每页条数 |
-| riskLevel | string | 否 | 风险等级：`P0` / `P1` / `P2` / `P3` |
+| riskLevel | string | 否 | 风险等级：`P0` / `P1` / `P2` |
 | riskTypes | string | 否 | 风险类型，多个以英文逗号分隔，命中任一即匹配 |
 | emailStatus | string | 否 | 邮件状态：`sent`（已发送）/ `failed`（发送失败） |
 | studentSearch | string | 否 | 按学生姓名或学号模糊搜索 |
@@ -304,7 +305,7 @@ GET /api/psychological-warnings
   "handledAt": null
 }
 ```
-> riskLevel 取值 `P0`~`P3`；triggerType：`fast`（快路）/ `slow`（慢路）；confidence 为 0~100 整数；列表按 createdAt 倒序返回。
+> riskLevel 取值 `P0` / `P1` / `P2`（P3 不入库）；triggerType：`fast`（快路）/ `slow`（慢路）；confidence 为 0~100 整数；列表按 createdAt 倒序返回。
 
 ### 3. 获取预警详情
 
